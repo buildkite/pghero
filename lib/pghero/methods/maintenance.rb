@@ -55,7 +55,8 @@ module PgHero
         select_all <<-SQL
           SELECT
             schemaname AS schema,
-            relname AS table,
+            pg_stat_user_tables.relname AS table,
+            pg_class.reloptions AS options,
             last_vacuum,
             last_autovacuum,
             last_analyze,
@@ -64,6 +65,8 @@ module PgHero
             n_live_tup AS live_rows
           FROM
             pg_stat_user_tables
+          JOIN
+            pg_class ON pg_stat_user_tables.relid = pg_class.oid
           ORDER BY
             1, 2
         SQL
