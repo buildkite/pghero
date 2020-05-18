@@ -7,7 +7,7 @@ module PgHero
             %i(
               max_connections shared_buffers effective_cache_size work_mem
               maintenance_work_mem min_wal_size max_wal_size checkpoint_completion_target
-              wal_buffers default_statistics_target
+              wal_buffers default_statistics_target max_worker_processes max_parallel_workers_per_gather max_parallel_workers parallel_tuple_cost parallel_setup_cost min_parallel_table_scan_size min_parallel_index_scan_size max_parallel_maintenance_workers
             )
           else
             %i(
