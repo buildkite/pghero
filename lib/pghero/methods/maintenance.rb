@@ -88,7 +88,7 @@ module PgHero
       end
 
       def maintenance_info
-        select_all <<-SQL
+        info = select_all(<<-SQL, cast_values: true)
           SELECT
             schemaname AS schema,
             pg_stat_user_tables.relname AS table,
@@ -106,6 +106,26 @@ module PgHero
           ORDER BY
             1, 2
         SQL
+
+        runtime_parameters = autovacuum_settings
+
+        info.each do |row|
+          table_options = row[:options]&.map { |opt| opt.split("=", 2) }.to_h || {}
+
+          # look up a table storage parameter, defaulting to the globally set value
+          find_param = ->(key) { table_options[key.to_s] || runtime_parameters[key] }
+
+          # vacuum_threshold = autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor * pg_class.reltuples
+          # — https://www.postgresql.org/docs/13/routine-vacuuming.html#AUTOVACUUM
+          threshold = find_param.(:autovacuum_vacuum_threshold).to_i
+          scale_factor = find_param.(:autovacuum_vacuum_scale_factor).to_f
+          reltuples = row[:live_rows].to_i
+
+          row[:vacuum_threshold] = (threshold + scale_factor * reltuples).to_i
+          row[:vacuum_threshold_calc] = "#{threshold} + #{scale_factor} * #{reltuples}"
+        end
+
+        info
       end
 
       def analyze(table, verbose: false)

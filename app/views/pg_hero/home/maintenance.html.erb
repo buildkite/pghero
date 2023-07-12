@@ -7,6 +7,7 @@
         <th>Table</th>
         <th class="text-right">Live Tuples</th>
         <th class="text-right">Dead Tuples</th>
+        <th class="text-right">Vacuum Threshold</th>
         <th class="text-right">Last Vacuum</th>
         <th class="text-right">Last Analyze</th>
         <% if @show_dead_rows %>
@@ -24,7 +25,7 @@
             <% end %>
             <% if table[:options] %>
               <ul style="font-size: 12px" class="text-muted">
-                <% table[:options].gsub(/\A\{|\}\z/, "").split(",").each do |option| %>
+                <% table[:options].each do |option| %>
                   <li><code><%= option %></code></li>
                 <% end %>
               </ul>
@@ -42,6 +43,21 @@
               <span class="text-warning"><%= number_with_delimiter(table[:dead_rows]) %></span>
             <% else %>
               <span class="text-muted">0</span>
+            <% end %>
+          </td>
+          <td class="text-right">
+            <% if table[:vacuum_threshold] > @max_dead_tuples %>
+              <span class="text-warning" title="<%= table[:vacuum_threshold_calc] %>">
+                <%= number_with_delimiter(table[:vacuum_threshold]) %>
+                <br>
+                <span style="font-size: 12px" class="text-muted">
+                  <code>&gt; max_dead_tuples=<%= number_with_delimiter(@max_dead_tuples) %></code>
+                </span>
+              </span>
+            <% else %>
+              <span title="<%= table[:vacuum_threshold_calc] %>">
+                <%= number_with_delimiter(table[:vacuum_threshold]) %>
+              </span>
             <% end %>
           </td>
           <td class="text-right">
