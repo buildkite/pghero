@@ -387,6 +387,7 @@ module PgHero
       @maintenance_info = @database.maintenance_info
       @time_zone = PgHero.time_zone
       @show_dead_rows = params[:dead_rows]
+      @max_dead_tuples = @database.autovacuum_max_dead_tuples
     end
 
     def kill

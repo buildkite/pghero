@@ -36,12 +36,13 @@ module PgHero
 
       private
 
-      def select_all(sql, conn: nil, query_columns: [])
+      def select_all(sql, conn: nil, query_columns: [], cast_values: false)
         conn ||= connection
         # squish for logs
         retries = 0
         begin
           result = conn.select_all(add_source(squish(sql)))
+          result = result.cast_values.map { |row| result.columns.zip(row).to_h } if cast_values
           if ActiveRecord::VERSION::STRING.to_f >= 6.1
             result = result.map(&:symbolize_keys)
           else
