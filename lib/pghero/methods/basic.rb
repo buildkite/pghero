@@ -36,16 +36,22 @@ module PgHero
 
       private
 
-      def select_all(sql, conn: nil, query_columns: [])
+      def select_all(sql, conn: nil, query_columns: [], cast_values: false)
         conn ||= connection
         # squish for logs
         retries = 0
         begin
-          result = conn.select_all(add_source(squish(sql)))
+          result = uncast_result = conn.select_all(add_source(squish(sql)))
+          if cast_values
+            # ActiveRecord::Result#cast_values turns PostgreSQL arrays into Ruby arrays, etc.
+            # But it turns ActiveRecord::Result into Array of results, which is why we keep
+            # an `uncast_result` copy of `result`.
+            result = result.cast_values.map { |row| result.columns.zip(row).to_h }
+          end
           if ActiveRecord::VERSION::STRING.to_f >= 6.1
             result = result.map(&:symbolize_keys)
           else
-            result = result.map { |row| row.to_h { |col, val| [col.to_sym, result.column_types[col].send(:cast_value, val)] } }
+            result = result.map { |row| row.to_h { |col, val| [col.to_sym, uncast_result.column_types[col].send(:cast_value, val)] } }
           end
           if filter_data
             query_columns.each do |column|
