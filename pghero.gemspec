@@ -2,7 +2,7 @@ require_relative "lib/pghero/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "pghero"
-  spec.version       = PgHero::VERSION
+  spec.version       = PgHero::VERSION + "-buildkite"
   spec.summary       = "A performance dashboard for Postgres"
   spec.homepage      = "https://github.com/ankane/pghero"
   spec.license       = "MIT"
