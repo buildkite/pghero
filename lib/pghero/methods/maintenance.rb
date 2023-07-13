@@ -9,7 +9,7 @@ module PgHero
         max_value = max_value.to_i
         threshold = threshold.to_i
 
-        select_all <<-SQL
+        select_all <<~SQL
           SELECT
             n.nspname AS schema,
             c.relname AS table,
@@ -35,7 +35,7 @@ module PgHero
 
       def vacuum_progress
         if server_version_num >= 90600
-          select_all <<-SQL
+          select_all <<~SQL
             SELECT
               pid,
               phase,
@@ -88,7 +88,7 @@ module PgHero
       end
 
       def maintenance_info
-        select_all <<-SQL
+        select_all <<~SQL
           SELECT
             schemaname AS schema,
             pg_stat_user_tables.relname AS table,

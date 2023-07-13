@@ -6,7 +6,7 @@ module PgHero
       end
 
       def relation_sizes
-        select_all_size <<-SQL
+        select_all_size <<~SQL
           SELECT
             n.nspname AS schema,
             c.relname AS relation,
@@ -27,7 +27,7 @@ module PgHero
       end
 
       def table_sizes
-        select_all_size <<-SQL
+        select_all_size <<~SQL
           SELECT
             n.nspname AS schema,
             c.relname AS table,
@@ -52,7 +52,7 @@ module PgHero
           sizes = relation_sizes.to_h { |r| [[r[:schema], r[:relation]], r[:size_bytes]] }
           start_at = days.days.ago
 
-          stats = select_all_stats <<-SQL
+          stats = select_all_stats <<~SQL
             WITH t AS (
               SELECT
                 schema,
@@ -95,7 +95,7 @@ module PgHero
           sizes = relation_sizes.map { |r| [[r[:schema], r[:relation]], r[:size_bytes]] }.to_h
           start_at = 30.days.ago
 
-          stats = select_all_stats <<-SQL
+          stats = select_all_stats <<~SQL
             SELECT
               captured_at,
               size AS size_bytes
@@ -121,16 +121,22 @@ module PgHero
 
       def capture_space_stats
         now = Time.now
-        columns = %w(database schema relation size captured_at)
-        values = []
-        relation_sizes.each do |rs|
-          values << [id, rs[:schema], rs[:relation], rs[:size_bytes].to_i, now]
-        end
-        insert_stats("pghero_space_stats", columns, values) if values.any?
+        values =
+          relation_sizes.map do |rs|
+            {
+              database: id,
+              schema: rs[:schema],
+              relation: rs[:relation],
+              size: rs[:size_bytes].to_i,
+              captured_at: now
+            }
+          end
+        PgHero::SpaceStats.insert_all!(values) if values.any?
       end
 
-      def clean_space_stats
-        PgHero::SpaceStats.where(database: id).where("captured_at < ?", 90.days.ago).delete_all
+      def clean_space_stats(before: nil)
+        before ||= 90.days.ago
+        PgHero::SpaceStats.where(database: id).where("captured_at < ?", before).delete_all
       end
 
       def space_stats_enabled?

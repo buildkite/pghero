@@ -162,8 +162,9 @@ module PgHero
         end
       end
 
-      def clean_query_stats
-        PgHero::QueryStats.where(database: id).where("captured_at < ?", 14.days.ago).delete_all
+      def clean_query_stats(before: nil)
+        before ||= 14.days.ago
+        PgHero::QueryStats.where(database: id).where("captured_at < ?", before).delete_all
       end
 
       def slow_queries(query_stats: nil, **options)
@@ -171,10 +172,11 @@ module PgHero
         query_stats.select { |q| q[:calls].to_i >= slow_query_calls.to_i && q[:average_time].to_f >= slow_query_ms.to_f }
       end
 
+      # TODO option to include current period
       def query_hash_stats(query_hash, user: nil)
         if historical_query_stats_enabled? && supports_query_hash?
           start_at = 24.hours.ago
-          select_all_stats <<-SQL
+          select_all_stats <<~SQL
             SELECT
               captured_at,
               total_time / 1000 / 60 AS total_minutes,
@@ -204,7 +206,7 @@ module PgHero
           limit ||= 100
           sort ||= "total_minutes"
           total_time = server_version_num >= 130000 ? "(total_plan_time + total_exec_time)" : "total_time"
-          query = <<-SQL
+          query = <<~SQL
             WITH query_stats AS (
               SELECT
                 LEFT(query, 10000) AS query,
@@ -237,7 +239,7 @@ module PgHero
             FROM
               query_stats
             ORDER BY
-              #{quote_table_name(sort)} DESC
+              #{quote_column_name(sort)} DESC
             LIMIT #{limit.to_i}
           SQL
 
@@ -253,7 +255,7 @@ module PgHero
       def historical_query_stats(sort: nil, start_at: nil, end_at: nil, query_hash: nil)
         if historical_query_stats_enabled?
           sort ||= "total_minutes"
-          query = <<-SQL
+          query = <<~SQL
             WITH query_stats AS (
               SELECT
                 #{supports_query_hash? ? "query_hash" : "md5(query)"} AS query_hash,
@@ -286,7 +288,7 @@ module PgHero
             FROM
               query_stats
             ORDER BY
-              #{quote_table_name(sort)} DESC
+              #{quote_column_name(sort)} DESC
             LIMIT 100
           SQL
 
@@ -329,19 +331,17 @@ module PgHero
       def insert_query_stats(db_id, db_query_stats, now)
         values =
           db_query_stats.map do |qs|
-            [
-              db_id,
-              qs[:query],
-              qs[:total_minutes] * 60 * 1000,
-              qs[:calls],
-              now,
-              supports_query_hash? ? qs[:query_hash] : nil,
-              qs[:user]
-            ]
+            {
+              database: db_id,
+              query: qs[:query],
+              total_time: qs[:total_minutes] * 60 * 1000,
+              calls: qs[:calls],
+              captured_at: now,
+              query_hash: supports_query_hash? ? qs[:query_hash] : nil,
+              user: qs[:user]
+            }
           end
-
-        columns = %w[database query total_time calls captured_at query_hash user]
-        insert_stats("pghero_query_stats", columns, values)
+        PgHero::QueryStats.insert_all!(values)
       end
     end
   end

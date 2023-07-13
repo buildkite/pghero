@@ -46,11 +46,18 @@ module PgHero
 
       @transaction_id_danger = @database.transaction_id_danger(threshold: 1500000000)
 
-      @readable_sequences, @unreadable_sequences = @database.sequences.partition { |s| s[:readable] }
+      sequences, @sequences_timeout = rescue_timeout([]) { @database.sequences }
+      @readable_sequences, @unreadable_sequences = sequences.partition { |s| s[:readable] }
 
       @sequence_danger = @database.sequence_danger(threshold: (params[:sequence_threshold] || 0.9).to_f, sequences: @readable_sequences)
 
-      @indexes = @database.indexes
+      @indexes, @indexes_timeout =
+        if @sequences_timeout
+          # skip indexes for faster loading
+          [[], true]
+        else
+          rescue_timeout([]) { @database.indexes }
+        end
       @invalid_indexes = @database.invalid_indexes(indexes: @indexes)
       @invalid_constraints = @database.invalid_constraints
       @duplicate_indexes = @database.duplicate_indexes(indexes: @indexes)
@@ -80,7 +87,7 @@ module PgHero
       @days = (params[:days] || 7).to_i
       @database_size = @database.database_size
       @only_tables = params[:tables].present?
-      @relation_sizes = @only_tables ? @database.table_sizes : @database.relation_sizes
+      @relation_sizes, @sizes_timeout = rescue_timeout([]) { @only_tables ? @database.table_sizes : @database.relation_sizes }
       @space_stats_enabled = @database.space_stats_enabled? && !@only_tables
       if @space_stats_enabled
         space_growth = @database.space_growth(days: @days, relation_sizes: @relation_sizes)
@@ -160,8 +167,9 @@ module PgHero
           )
         end
 
-      @indexes = @database.indexes
-      set_suggested_indexes
+      if !@historical_query_stats_enabled || request.xhr?
+        set_suggested_indexes
+      end
 
       # fix back button issue with caching
       response.headers["Cache-Control"] = "must-revalidate, no-store, no-cache, private"
@@ -196,7 +204,8 @@ module PgHero
 
         if @tables.any?
           @row_counts = @database.table_stats(table: @tables).to_h { |i| [i[:table], i[:estimated_rows]] }
-          @indexes_by_table = @database.indexes.group_by { |i| i[:table] }
+          indexes, @indexes_timeout = rescue_timeout([]) { @database.indexes }
+          @indexes_by_table = indexes.group_by { |i| i[:table] }
         end
       else
         render_text "Unknown query", status: :not_found
@@ -242,9 +251,16 @@ module PgHero
       stats =
         case @database.system_stats_provider
         when :azure
-          [
-            {name: "IO Consumption", data: @database.azure_stats("io_consumption_percent", **system_params), library: chart_library_options}
-          ]
+          if @database.send(:azure_flexible_server?)
+            [
+              {name: "Read IOPS", data: @database.read_iops_stats(**system_params).map { |k, v| [k, v ? v.round : v] }, library: chart_library_options},
+              {name: "Write IOPS", data: @database.write_iops_stats(**system_params).map { |k, v| [k, v ? v.round : v] }, library: chart_library_options}
+            ]
+          else
+            [
+              {name: "IO Consumption", data: @database.azure_stats("io_consumption_percent", **system_params), library: chart_library_options}
+            ]
+          end
         when :gcp
           [
             {name: "Read Ops", data: @database.read_iops_stats(**system_params).map { |k, v| [k, v ? v.round : v] }, library: chart_library_options},
@@ -398,6 +414,7 @@ module PgHero
       redirect_backward alert: "The database user does not have permission to enable query stats"
     end
 
+    # TODO disable if historical query stats enabled?
     def reset_query_stats
       success =
         if @database.server_version_num >= 120000
@@ -443,14 +460,18 @@ module PgHero
     end
 
     def set_suggested_indexes(min_average_time = 0, min_calls = 0)
+      if @database.suggested_indexes_enabled? && !@indexes
+        @indexes, @indexes_timeout = rescue_timeout([]) { @database.indexes }
+      end
+
       @suggested_indexes_by_query =
-        if @database.suggested_indexes_enabled?
-          @database.suggested_indexes_by_query(query_stats: @query_stats.select { |qs| qs[:average_time] >= min_average_time && qs[:calls] >= min_calls })
+        if !@indexes_timeout && @database.suggested_indexes_enabled?
+          @database.suggested_indexes_by_query(query_stats: @query_stats.select { |qs| qs[:average_time] >= min_average_time && qs[:calls] >= min_calls }, indexes: @indexes)
         else
           {}
         end
 
-      @suggested_indexes = @database.suggested_indexes(suggested_indexes_by_query: @suggested_indexes_by_query, indexes: @indexes)
+      @suggested_indexes = @database.suggested_indexes(suggested_indexes_by_query: @suggested_indexes_by_query)
       @query_stats_by_query = @query_stats.index_by { |q| q[:query] }
       @debug = params[:debug].present?
     end
@@ -497,6 +518,14 @@ module PgHero
       unless @query_stats_enabled
         redirect_to root_path, alert: "Query stats not enabled"
       end
+    end
+
+    # rescue QueryCanceled for case when
+    # statement timeout is less than lock timeout
+    def rescue_timeout(default)
+      [yield, false]
+    rescue ActiveRecord::LockWaitTimeout, ActiveRecord::QueryCanceled
+      [default, true]
     end
   end
 end

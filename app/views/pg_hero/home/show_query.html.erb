@@ -49,19 +49,19 @@
     <h1>Total Time <small>ms</small></h1>
     <div id="chart-1" class="chart" style="margin-bottom: 20px;">Loading...</div>
     <script>
-      new Chartkick.LineChart("chart-1", <%= json_escape(@chart_data.to_json).html_safe %>, {colors: ["#5bc0de"], legend: false, library: {plugins: {tooltip: {intersect: false, mode: "index"}}}})
+      new Chartkick.LineChart("chart-1", <%= pghero_js_value(@chart_data) %>, {colors: ["#5bc0de"], legend: false, library: {plugins: {tooltip: {intersect: false, mode: "index"}}}})
     </script>
 
     <h1>Average Time <small>ms</small></h1>
     <div id="chart-2" class="chart" style="margin-bottom: 20px;">Loading...</div>
     <script>
-      new Chartkick.LineChart("chart-2", <%= json_escape(@chart2_data.to_json).html_safe %>, {colors: ["#5bc0de"], legend: false, library: {plugins: {tooltip: {intersect: false, mode: "index"}}}})
+      new Chartkick.LineChart("chart-2", <%= pghero_js_value(@chart2_data) %>, {colors: ["#5bc0de"], legend: false, library: {plugins: {tooltip: {intersect: false, mode: "index"}}}})
     </script>
 
     <h1>Calls</h1>
     <div id="chart-3" class="chart" style="margin-bottom: 20px;">Loading...</div>
     <script>
-      new Chartkick.LineChart("chart-3", <%= json_escape(@chart3_data.to_json).html_safe %>, {colors: ["#5bc0de"], legend: false, library: {plugins: {tooltip: {intersect: false, mode: "index"}}}})
+      new Chartkick.LineChart("chart-3", <%= pghero_js_value(@chart3_data) %>, {colors: ["#5bc0de"], legend: false, library: {plugins: {tooltip: {intersect: false, mode: "index"}}}})
     </script>
   <% else %>
     <p>
@@ -88,15 +88,19 @@
             <td><%= table %></td>
             <td><%= @row_counts[table] %></td>
             <td>
-              <ul>
-                <% @indexes_by_table[table].to_a.sort_by { |i| [i[:primary] ? 0 : 1, i[:columns]] }.each do |i3| %>
-                  <li>
-                    <%= i3[:columns].join(", ") %><% if i3[:using] != "btree" %>
-                    <%= i3[:using].to_s.upcase %><% end %>
-                    <% if i3[:primary] %> PRIMARY<% elsif i3[:unique] %> UNIQUE<% end %>
-                  </li>
-                <% end %>
-              </ul>
+              <% if @indexes_timeout %>
+                Not available
+              <% else %>
+                <ul>
+                  <% @indexes_by_table[table].to_a.sort_by { |i| [i[:primary] ? 0 : 1, i[:columns]] }.each do |i3| %>
+                    <li>
+                      <%= i3[:columns].join(", ") %><% if i3[:using] != "btree" %>
+                      <%= i3[:using].to_s.upcase %><% end %>
+                      <% if i3[:primary] %> PRIMARY<% elsif i3[:unique] %> UNIQUE<% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              <% end %>
             </td>
           </tr>
         <% end %>
