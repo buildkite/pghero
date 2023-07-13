@@ -1,3 +1,27 @@
+## 3.3.3 (2023-04-18)
+
+- Fixed error with system stats for Azure Database
+
+## 3.3.2 (2023-04-12)
+
+- Fixed error with suggested indexes and empty statements
+
+## 3.3.1 (2023-03-15)
+
+- Fixed error with Uglifier
+
+## 3.3.0 (2023-03-11)
+
+- Improved handling of lock timeouts
+- Improved syntax highlighting
+
+## 3.2.0 (2023-02-21)
+
+- Added support for pg_query 4
+- Added `pghero:clean_space_stats` rake task
+- Added support for specifying retention period with `clean_query_stats` and `clean_space_stats`
+- Removed reset button when historical query stats are enabled
+
 ## 3.1.0 (2023-01-04)
 
 - Fixed explain error message leaking data - [more info](https://github.com/ankane/pghero/issues/439)

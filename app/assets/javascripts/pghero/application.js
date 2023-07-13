@@ -2,11 +2,12 @@
 //= require ./nouislider
 //= require ./Chart.bundle
 //= require ./chartkick
-//= require ./highlight.pack
+//= require ./highlight.min
 
 window.highlightQueries = function() {
-  $("pre code").each(function(i, block) {
-    hljs.highlightBlock(block);
+  $("pre code").each(function (i, block) {
+    $(block).addClass("language-pgsql");
+    hljs.highlightElement(block);
   });
 }
 
@@ -45,9 +46,9 @@ window.initSlider = function() {
   });
 
   // remove outline for mouse only
-  $(".noUi-handle").mousedown(function() {
+  $(".noUi-handle").mousedown(function () {
     $(this).addClass("no-outline");
-  }).blur(function() {
+  }).blur(function () {
     $(this).removeClass("no-outline");
   });
 
@@ -61,14 +62,14 @@ window.initSlider = function() {
     var time = timeAt(offset);
 
     var html = "";
-    if (time == now) {
-      if (selector == "#range-end") {
+    if (time === now) {
+      if (selector === "#range-end") {
         html = "Now";
       }
     } else {
       html = time.getDate() + " " + months[time.getMonth()] + " " + pad(time.getHours()) + ":" + pad(time.getMinutes());
     }
-    $(selector).html(html);
+    $(selector).text(html);
   }
 
   function timeAt(offset) {
@@ -77,7 +78,7 @@ window.initSlider = function() {
   }
 
   function timeParam(time) {
-    return time.toISOString();
+    return time.toISOString().replace(/\.000Z$/, "Z");
   }
 
   function queriesPath(params) {
@@ -115,7 +116,7 @@ window.initSlider = function() {
 
     var path = queriesPath(params);
 
-    $(".queries-table th a").each( function () {
+    $(".queries-table th a").each(function () {
       var p = $.extend({}, params, {sort: $(this).data("sort"), min_average_time: minAverageTime, min_calls: minCalls, debug: debug});
       if (!p.sort) {
         delete p.sort;
@@ -135,7 +136,7 @@ window.initSlider = function() {
 
     var callback = function (response, status, xhr) {
       if (status === "error" ) {
-        $(".queries-info").css("color", "red").html(xhr.status + " " + xhr.statusText);
+        $(".queries-info").css("color", "red").text(xhr.status + " " + xhr.statusText);
       } else {
         highlightQueries();
       }
@@ -152,7 +153,7 @@ window.initSlider = function() {
     refreshStats(true);
   });
   updateText();
-  $( function () {
+  $(function () {
     refreshStats(false);
   });
 }

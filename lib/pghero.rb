@@ -1,29 +1,31 @@
 # dependencies
 require "active_support"
+
+# stdlib
 require "forwardable"
 
 # methods
-require "pghero/methods/basic"
-require "pghero/methods/connections"
-require "pghero/methods/constraints"
-require "pghero/methods/explain"
-require "pghero/methods/indexes"
-require "pghero/methods/kill"
-require "pghero/methods/maintenance"
-require "pghero/methods/queries"
-require "pghero/methods/query_stats"
-require "pghero/methods/replication"
-require "pghero/methods/sequences"
-require "pghero/methods/settings"
-require "pghero/methods/space"
-require "pghero/methods/suggested_indexes"
-require "pghero/methods/system"
-require "pghero/methods/tables"
-require "pghero/methods/users"
+require_relative "pghero/methods/basic"
+require_relative "pghero/methods/connections"
+require_relative "pghero/methods/constraints"
+require_relative "pghero/methods/explain"
+require_relative "pghero/methods/indexes"
+require_relative "pghero/methods/kill"
+require_relative "pghero/methods/maintenance"
+require_relative "pghero/methods/queries"
+require_relative "pghero/methods/query_stats"
+require_relative "pghero/methods/replication"
+require_relative "pghero/methods/sequences"
+require_relative "pghero/methods/settings"
+require_relative "pghero/methods/space"
+require_relative "pghero/methods/suggested_indexes"
+require_relative "pghero/methods/system"
+require_relative "pghero/methods/tables"
+require_relative "pghero/methods/users"
 
-require "pghero/database"
-require "pghero/engine" if defined?(Rails)
-require "pghero/version"
+require_relative "pghero/database"
+require_relative "pghero/engine" if defined?(Rails)
+require_relative "pghero/version"
 
 module PgHero
   autoload :Connection, "pghero/connection"
@@ -119,7 +121,7 @@ module PgHero
 
         config_file_exists = File.exist?(path)
 
-        config = YAML.load(ERB.new(File.read(path)).result) if config_file_exists
+        config = YAML.safe_load(ERB.new(File.read(path)).result) if config_file_exists
         config ||= {}
 
         @file_config =
@@ -222,15 +224,15 @@ module PgHero
     # delete previous stats
     # go database by database to use an index
     # stats for old databases are not cleaned up since we can't use an index
-    def clean_query_stats
+    def clean_query_stats(before: nil)
       each_database do |database|
-        database.clean_query_stats
+        database.clean_query_stats(before: before)
       end
     end
 
-    def clean_space_stats
+    def clean_space_stats(before: nil)
       each_database do |database|
-        database.clean_space_stats
+        database.clean_space_stats(before: before)
       end
     end
 

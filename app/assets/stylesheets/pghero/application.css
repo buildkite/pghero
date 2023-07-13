@@ -187,7 +187,7 @@ hr {
 }
 
 #slider-container {
-  padding: 6px 140px 20px 140px;
+  padding: 6px 8px 14px 8px;
 }
 
 .queries-table th a, .space-table th a {
@@ -195,7 +195,7 @@ hr {
 }
 
 #slider {
-  margin-bottom: 20px;
+  margin: 0px 14px 18px 14px;
 }
 
 #range-start {
@@ -409,6 +409,12 @@ hr {
   line-height: 300px;
   text-align: center;
   color: #999;
+}
+
+.pie-chart {
+  height: 260px;
+  line-height: 260px;
+  margin-bottom: 20px;
 }
 
 .unused-index {

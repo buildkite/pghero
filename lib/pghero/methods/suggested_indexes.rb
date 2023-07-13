@@ -79,7 +79,7 @@ module PgHero
         suggested_indexes.each do |index|
           p index
           if create
-            connection.execute("CREATE INDEX CONCURRENTLY ON #{quote_table_name(index[:table])} (#{index[:columns].map { |c| quote_table_name(c) }.join(",")})")
+            connection.execute("CREATE INDEX CONCURRENTLY ON #{quote_table_name(index[:table])} (#{index[:columns].map { |c| quote_column_name(c) }.join(",")})")
           end
         end
       end
@@ -194,6 +194,7 @@ module PgHero
       end
 
       def best_index_structure(statement)
+        return {error: "Empty statement"} if statement.to_s.empty?
         return {error: "Too large"} if statement.to_s.length > 10000
 
         begin
@@ -286,27 +287,31 @@ module PgHero
           else
             raise "Not Implemented"
           end
-        elsif aexpr && ["=", "<>", ">", ">=", "<", "<=", "~~", "~~*", "BETWEEN"].include?(aexpr.name.first.string.str)
-          [{column: aexpr.lexpr.column_ref.fields.last.string.str, op: aexpr.name.first.string.str}]
+        elsif aexpr && ["=", "<>", ">", ">=", "<", "<=", "~~", "~~*", "BETWEEN"].include?(aexpr.name.first.string.send(str_method))
+          [{column: aexpr.lexpr.column_ref.fields.last.string.send(str_method), op: aexpr.name.first.string.send(str_method)}]
         elsif tree.null_test
           op = tree.null_test.nulltesttype == :IS_NOT_NULL ? "not_null" : "null"
-          [{column: tree.null_test.arg.column_ref.fields.last.string.str, op: op}]
+          [{column: tree.null_test.arg.column_ref.fields.last.string.send(str_method), op: op}]
         else
           raise "Not Implemented"
         end
       end
 
+      def str_method
+        @str_method ||= Gem::Version.new(PgQuery::VERSION) >= Gem::Version.new("4") ? :sval : :str
+      end
+
       def parse_sort(sort_clause)
         sort_clause.map do |v|
           {
-            column: v.sort_by.node.column_ref.fields.last.string.str,
+            column: v.sort_by.node.column_ref.fields.last.string.send(str_method),
             direction: v.sort_by.sortby_dir == :SORTBY_DESC ? "desc" : "asc"
           }
         end
       end
 
       def column_stats(schema: nil, table: nil)
-        select_all <<-SQL
+        select_all <<~SQL
           SELECT
             schemaname AS schema,
             tablename AS table,
