@@ -298,7 +298,7 @@ module PgHero
           explain_options =
             case params[:commit]
             when "Analyze"
-              {analyze: true}
+              {analyze: true, verbose: true, buffers: true}
             when "Visualize"
               if @explain_analyze_enabled
                 {analyze: true, costs: true, verbose: true, buffers: true, format: "json"}
