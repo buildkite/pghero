@@ -251,6 +251,8 @@ hr {
   border-radius: 2px;
   box-shadow: rgba(0, 0, 0, 0.298039) 0px 4px 10px 0px, rgba(0, 0, 0, 0.027451) 0px 0px 0px 1px;
   width: 200px;
+  height: 800px;
+  overflow-y: scroll;
 }
 
 .db-switcher .popup li a {
