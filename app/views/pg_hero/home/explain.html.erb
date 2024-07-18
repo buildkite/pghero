@@ -14,9 +14,17 @@
 
   <% if @explanation %>
     <% if @visualize %>
-      <p>Paste the output below into the <%= link_to "explain visualizer", PgHero.visualize_url, target: "_blank" %></p>
+      <hr>
+      <%= render partial: "pev2", locals: { plan: @explanation } %>
+      <hr>
+      <details>
+        <summary>PEV version 1 instructions</summary>
+        <p>Paste the output below into the <%= link_to "explain visualizer", PgHero.visualize_url, target: "_blank" %></p>
+        <pre><code><%= @explanation %></code></pre>
+      </details>
+    <% else %>
+      <pre><code><%= @explanation %></code></pre>
     <% end %>
-    <pre><code><%= @explanation %></code></pre>
     <% unless @visualize %>
       <p><%= link_to "See how to interpret this", "https://www.postgresql.org/docs/current/static/using-explain.html", target: "_blank" %></p>
     <% end %>

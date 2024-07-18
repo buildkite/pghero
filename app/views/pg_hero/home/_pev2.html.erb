@@ -1,0 +1,27 @@
+<script src="https://unpkg.com/vue@3.2.45/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/pev2/dist/pev2.umd.js"></script>
+<link
+  href="https://unpkg.com/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+<link rel="stylesheet" href="https://unpkg.com/pev2/dist/style.css" />
+
+<div id="pev2">
+  <pev2 :plan-source="plan" plan-query="" />
+</div>
+
+<script>
+  const { createApp } = Vue;
+
+  const plan = "<%= escape_javascript(plan.html_safe) %>";
+
+  const app = createApp({
+    data() {
+      return {
+        plan: plan,
+      }
+    },
+  });
+  app.component("pev2", pev2.Plan);
+  app.mount("#pev2");
+</script>
