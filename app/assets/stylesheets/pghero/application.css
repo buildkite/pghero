@@ -251,12 +251,22 @@ hr {
   border-radius: 2px;
   box-shadow: rgba(0, 0, 0, 0.298039) 0px 4px 10px 0px, rgba(0, 0, 0, 0.027451) 0px 0px 0px 1px;
   width: 200px;
+  max-height: 50vh;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.db-switcher .popup ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin-bottom: 0;
 }
 
 .db-switcher .popup li a {
-  padding: 15px 10px;
   font-weight: bold;
   display: block;
+  line-height: 2rem;
+  padding: 0 12px;
 }
 
 /* nav */
