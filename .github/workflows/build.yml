@@ -6,31 +6,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - ruby: 3.4
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 16
-          - ruby: 3.4
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 15
-          - ruby: 3.4
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 14
-          - ruby: 3.4
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 13
-          - ruby: 3.3
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 16
-          - ruby: 3.3
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 15
-          - ruby: 3.3
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 14
-          - ruby: 3.3
-            gemfile: gemfiles/activerecord71.gemfile
-            postgres: 13
+        ruby: ["2.7", "3.0", "3.1", "3.2", "3.3", "3.4", head]
+        postgres: [13, 14, 15, 16]
+        gemfile:
+          [
+            gemfiles/activerecord60.gemfile,
+            gemfiles/activerecord61.gemfile,
+            gemfiles/activerecord70.gemfile,
+            gemfiles/activerecord71.gemfile,
+            gemfiles/activerecord72.gemfile,
+            gemfiles/activerecord80.gemfile,
+          ]
+        exclude:
+          # Rails 7.2 requires Ruby 3.1 or higher
+          - ruby: "2.7"
+            gemfile: gemfiles/activerecord72.gemfile
+          - ruby: "2.7"
+            gemfile: gemfiles/activerecord80.gemfile
+          - ruby: "3.0"
+            gemfile: gemfiles/activerecord72.gemfile
+          - ruby: "3.0"
+            gemfile: gemfiles/activerecord80.gemfile
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:

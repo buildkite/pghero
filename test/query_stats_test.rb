@@ -40,7 +40,7 @@ class QueryStatsTest < Minitest::Test
     skip unless gte12?
 
     assert database.reset_query_stats
-    ActiveRecord::Base.connection.select_all("SELECT 1")
+    ActiveRecord::Base.connection_pool.with_connection { |connection| connection.select_all("SELECT 1") }
     assert database.query_stats.any? { |qs| qs[:query] == "SELECT $1" }
 
     assert database.reset_instance_query_stats(database: database.database_name)
@@ -62,7 +62,7 @@ class QueryStatsTest < Minitest::Test
     skip unless gte12?
 
     assert database.reset_query_stats
-    ActiveRecord::Base.connection.select_all("SELECT 1")
+    ActiveRecord::Base.connection_pool.with_connection { |connection| connection.select_all("SELECT 1") }
     assert database.query_stats.any? { |qs| qs[:query] == "SELECT $1" }
 
     assert database.reset_query_stats(user: database.current_user)
@@ -84,8 +84,8 @@ class QueryStatsTest < Minitest::Test
     skip unless gte12?
 
     assert database.reset_query_stats
-    ActiveRecord::Base.connection.select_all("SELECT 1")
-    ActiveRecord::Base.connection.select_all("SELECT 1 + 1")
+    ActiveRecord::Base.connection_pool.with_connection { |connection| connection.select_all("SELECT 1") }
+    ActiveRecord::Base.connection_pool.with_connection { |connection| connection.select_all("SELECT 1 + 1") }
 
     assert database.query_stats.any? { |qs| qs[:query] == "SELECT $1" }
     assert database.query_stats.any? { |qs| qs[:query] == "SELECT $1 + $2" }

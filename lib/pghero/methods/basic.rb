@@ -31,17 +31,18 @@ module PgHero
       end
 
       def quote_ident(value)
-        connection.quote_column_name(value)
+        with_connection do |connection|
+          connection.quote_column_name(value)
+        end
       end
 
       private
 
       def select_all(sql, conn: nil, query_columns: [], cast_values: false)
-        conn ||= connection
         # squish for logs
         retries = 0
         begin
-          result = uncast_result = conn.select_all(add_source(squish(sql)))
+          result = uncast_result = with_connection { |conn| conn.select_all(add_source(squish(sql))) }
           if cast_values
             # ActiveRecord::Result#cast_values turns PostgreSQL arrays into Ruby arrays, etc.
             # But it turns ActiveRecord::Result into Array of results, which is why we keep
@@ -87,7 +88,9 @@ module PgHero
       end
 
       def select_all_stats(sql, **options)
-        select_all(sql, **options, conn: stats_connection)
+        with_stats_connection do |stats_connection|
+          select_all(sql, **options, conn: stats_connection)
+        end
       end
 
       def select_all_size(sql)
@@ -103,19 +106,23 @@ module PgHero
       end
 
       def select_one_stats(sql)
-        select_one(sql, conn: stats_connection)
+        with_stats_connection do |stats_connection|
+          select_one(sql, conn: stats_connection)
+        end
       end
 
       def execute(sql)
-        connection.execute(add_source(sql))
+        with_connection do |connection|
+          connection.execute(add_source(sql))
+        end
       end
 
-      def connection
-        connection_model.connection
+      def with_connection(&block)
+        connection_model.connection_pool.with_connection(&block)
       end
 
-      def stats_connection
-        ::PgHero::Stats.connection
+      def with_stats_connection(&block)
+        ::PgHero::Stats.connection_pool.with_connection(&block)
       end
 
       def squish(str)
@@ -127,15 +134,21 @@ module PgHero
       end
 
       def quote(value)
-        connection.quote(value)
+        with_connection do |connection|
+          connection.quote(value)
+        end
       end
 
       def quote_table_name(value)
-        connection.quote_table_name(value)
+        with_connection do |connection|
+          connection.quote_table_name(value)
+        end
       end
 
       def quote_column_name(value)
-        connection.quote_column_name(value)
+        with_connection do |connection|
+          connection.quote_column_name(value)
+        end
       end
 
       def unquote(part)
@@ -156,7 +169,9 @@ module PgHero
       end
 
       def table_exists?(table)
-        stats_connection.table_exists?(table)
+        with_stats_connection do |stats_connection|
+          stats_connection.table_exists?(table)
+        end
       end
     end
   end

@@ -31,6 +31,10 @@ Combustion.initialize! :active_record, :action_controller do
   config.active_record.logger = logger
 end
 
+if ActiveRecord.respond_to?(:permanent_connection_checkout)
+  ActiveRecord.permanent_connection_checkout = :disallowed
+end
+
 class City < ActiveRecord::Base
 end
 
@@ -47,7 +51,7 @@ states =
     }
   end
 State.insert_all!(states)
-ActiveRecord::Base.connection.execute("ANALYZE states")
+ActiveRecord::Base.connection_pool.with_connection { |connection| connection.execute("ANALYZE states") }
 
 users =
   5000.times.map do |i|
@@ -67,4 +71,4 @@ users =
     }
   end
 User.insert_all!(users)
-ActiveRecord::Base.connection.execute("ANALYZE users")
+ActiveRecord::Base.connection_pool.with_connection { |connection| connection.execute("ANALYZE users") }
